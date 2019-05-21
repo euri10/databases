@@ -11,7 +11,7 @@ from databases import Database, DatabaseURL
 assert "TEST_DATABASE_URLS" in os.environ, "TEST_DATABASE_URLS is not set."
 
 DATABASE_URLS = [url.strip() for url in os.environ["TEST_DATABASE_URLS"].split(",")]
-POSTGRES_URL_ONLY = [url for url in DATABASE_URLS if 'postgres' in url]
+POSTGRES_URL_ONLY = [url for url in DATABASE_URLS if "postgres" in url]
 
 
 class MyEpochType(sqlalchemy.types.TypeDecorator):

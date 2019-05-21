@@ -61,6 +61,17 @@ custom_date = sqlalchemy.Table(
     sqlalchemy.Column("published", MyEpochType),
 )
 
+defaults = sqlalchemy.Table(
+    "defaults",
+    metadata,
+    sqlalchemy.Column(
+        "str_default", sqlalchemy.String, server_default="string_default"
+    ),
+    sqlalchemy.Column("str_nodefault", sqlalchemy.String),
+    sqlalchemy.Column("int_default", sqlalchemy.Integer, server_default="22"),
+    sqlalchemy.Column("int_nodefault", sqlalchemy.Integer),
+)
+
 
 @pytest.fixture(autouse=True, scope="module")
 def create_test_database():
@@ -699,3 +710,41 @@ async def test_database_url_interface(database_url):
     async with Database(database_url) as database:
         assert isinstance(database.url, DatabaseURL)
         assert database.url == database_url
+
+
+@pytest.mark.parametrize("database_url", DATABASE_URLS)
+@async_adapter
+async def test_returning(database_url):
+    """
+    Returning for db that handle it
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            # execute with returning()
+            query = (
+                defaults.insert()
+                .returning(
+                    defaults.c.str_default,
+                    defaults.c.int_default,
+                    defaults.c.int_nodefault,
+                    defaults.c.str_nodefault,
+                )
+                .values(str_nodefault="no1", int_nodefault=1)
+            )
+            results = await database.fetch_all(query)
+            assert len(results) == 1
+            assert results[0]["str_default"] == "string_default"
+            assert results[0]["str_nodefault"] == "no1"
+            assert results[0]["int_default"] == 22
+            assert results[0]["int_nodefault"] == 1
+
+            # execute with return_defaults()
+            query = (
+                defaults.insert()
+                .return_defaults()
+                .values(str_nodefault="no2", int_nodefault=2)
+            )
+            results = await database.fetch_all(query)
+            assert len(results) == 1
+            assert results[0]["str_default"] == "string_default"
+            assert results[0]["int_default"] == 22

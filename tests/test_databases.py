@@ -702,7 +702,7 @@ async def test_queries_with_expose_backend_connection(database_url):
                 assert result[2] == True
 
 
-@pytest.mark.parametrize("database_url", POSTGRES_URL_ONLY)
+@pytest.mark.parametrize("database_url", DATABASE_URLS)
 @async_adapter
 async def test_database_url_interface(database_url):
     """
@@ -713,7 +713,7 @@ async def test_database_url_interface(database_url):
         assert database.url == database_url
 
 
-@pytest.mark.parametrize("database_url", DATABASE_URLS)
+@pytest.mark.parametrize("database_url", POSTGRES_URL_ONLY)
 @async_adapter
 async def test_returning(database_url):
     """

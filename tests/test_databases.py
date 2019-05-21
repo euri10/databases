@@ -66,9 +66,9 @@ defaults = sqlalchemy.Table(
     "defaults",
     metadata,
     sqlalchemy.Column(
-        "str_default", sqlalchemy.String, server_default="string_default"
+        "str_default", sqlalchemy.String(length=100), server_default="string_default"
     ),
-    sqlalchemy.Column("str_nodefault", sqlalchemy.String),
+    sqlalchemy.Column("str_nodefault", sqlalchemy.String(length=100)),
     sqlalchemy.Column("int_default", sqlalchemy.Integer, server_default="22"),
     sqlalchemy.Column("int_nodefault", sqlalchemy.Integer),
 )

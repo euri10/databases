@@ -11,6 +11,7 @@ from databases import Database, DatabaseURL
 assert "TEST_DATABASE_URLS" in os.environ, "TEST_DATABASE_URLS is not set."
 
 DATABASE_URLS = [url.strip() for url in os.environ["TEST_DATABASE_URLS"].split(",")]
+POSTGRES_URL_ONLY = [url for url in DATABASE_URLS if 'postgres' in url]
 
 
 class MyEpochType(sqlalchemy.types.TypeDecorator):
@@ -701,7 +702,7 @@ async def test_queries_with_expose_backend_connection(database_url):
                 assert result[2] == True
 
 
-@pytest.mark.parametrize("database_url", DATABASE_URLS)
+@pytest.mark.parametrize("database_url", POSTGRES_URL_ONLY)
 @async_adapter
 async def test_database_url_interface(database_url):
     """

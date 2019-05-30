@@ -5,12 +5,16 @@ import os
 
 import pytest
 import sqlalchemy
+from sqlalchemy import select
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import JSONB
 
 from databases import Database, DatabaseURL
 
 assert "TEST_DATABASE_URLS" in os.environ, "TEST_DATABASE_URLS is not set."
 
 DATABASE_URLS = [url.strip() for url in os.environ["TEST_DATABASE_URLS"].split(",")]
+POSTGRES_ONLY = [url for url in DATABASE_URLS if "postgres" in url]
 
 
 class MyEpochType(sqlalchemy.types.TypeDecorator):
@@ -59,6 +63,10 @@ custom_date = sqlalchemy.Table(
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
     sqlalchemy.Column("title", sqlalchemy.String(length=100)),
     sqlalchemy.Column("published", MyEpochType),
+)
+
+jsonitems = sqlalchemy.Table(
+    "jsonitems", metadata, sqlalchemy.Column("metadata", JSONB())
 )
 
 
@@ -699,3 +707,41 @@ async def test_database_url_interface(database_url):
     async with Database(database_url) as database:
         assert isinstance(database.url, DatabaseURL)
         assert database.url == database_url
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_url_interface(database_url):
+    async with Database(database_url) as database:
+        inserts = [
+            # {"country": "Peru"},
+            # {"country": "France"},
+            # {"company": {"name": "Mozilla"}},
+            # {"company": {"name": "Mozilla"}, "country": "Brazil"},
+            # {"foo_int": 12345},
+            {"a": {"b": {"c": "foo"}}}
+        ]
+
+        query = jsonitems.insert()
+        r = await database.execute_many(
+            query, values=[{"metadata": insert} for insert in inserts]
+        )
+
+        # raw query ok
+        queryraw = "SELECT jsonitems.metadata #>'{a,b}' AS anon_1 FROM jsonitems;"
+        r = await database.fetch_one(query=queryraw)
+        assert r["anon_1"] == '{"c": "foo"}'
+
+        query = select([jsonitems.c.metadata[("a", "b")]])
+
+        # raw using compiled from sqlalchemy ok
+        compiled = str(
+            query.compile(
+                dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+            )
+        )
+        r = await database.fetch_one(query=compiled)
+        assert r["anon_1"] == '{"c": "foo"}'
+
+        # fail
+        r = await database.fetch_all(query)

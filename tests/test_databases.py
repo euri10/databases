@@ -851,28 +851,71 @@ async def test_database_json_index_operations_operand_text_returning_text(databa
             assert r["anon_1"] == "2"
 
 
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_json_pathindex_operations_operand_textarray(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html
+
+        #>	text[]
+        Get JSON object at specified path
+        '{"a": {"b":{"c": "foo"}}}'::json#>'{a,b}'
+        {"c": "foo"}
 
 
-#######################################################
-#         ### Path index operations (the #> operator):
-#         # raw query ok
-#         queryraw = """
-#         SELECT jsonitems.metadata #> '{a,b}' AS anon_1 FROM jsonitems;
-#         """
-#         r = await database.fetch_one(query=queryraw)
-#         assert r["anon_1"] == {"c": "foo"}
-#
-#         query = select([jsonitems.c.metadata[("a", "b")]])
-#
-#         # raw using compiled from sqlalchemy ok
-#         compiled = str(
-#             query.compile(
-#                 dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
-#             )
-#         )
-#         r = await database.fetch_one(query=compiled)
-#         assert r["anon_1"] == '{"c": "foo"}'
-#
-#         # result ok with change, but its a json
-#         r = await database.fetch_one(query)
-#         assert r["anon_1"] == {"c": "foo"}
+    From https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#sqlalchemy.dialects.postgresql.JSON
+
+        Path index operations (the #> operator):
+        data_table.c.data[('key_1', 'key_2', 5, ..., 'key_n')]
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            inserts = [
+                {"a": {"b":{"c": "foo"}}}
+            ]
+            query = jsonitems.insert()
+            r = await database.execute_many(
+                query, values=[{"metadata": insert} for insert in inserts]
+            )
+            query = select([jsonitems])
+            r = await database.fetch_all(query)
+            assert len(r) == 1
+            query = select([jsonitems.c.metadata[('a', 'b')]])
+            r = await database.fetch_one(query)
+            assert len(r) == 1
+            assert r["anon_1"] == {"c": "foo"}
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_json_pathindex_operations_operand_textarray_returning_text(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html
+
+        #>>	text[]
+        Get JSON object at specified path as text
+        '{"a":[1,2,3],"b":[4,5,6]}'::json#>>'{a,2}'
+        3
+
+    From https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#sqlalchemy.dialects.postgresql.JSON
+
+        data_table.c.data[('key_1', 'key_2', 5, ..., 'key_n')].astext == 'some value'
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            inserts = [
+                {"a":[1,2,3],"b":[4,5,6]}
+            ]
+            query = jsonitems.insert()
+            r = await database.execute_many(
+                query, values=[{"metadata": insert} for insert in inserts]
+            )
+            query = select([jsonitems])
+            r = await database.fetch_all(query)
+            assert len(r) == 1
+            query = select([jsonitems.c.metadata[('a', '2')].astext])
+            r = await database.fetch_one(query)
+            assert len(r) == 1
+            assert r["anon_1"] == "3"

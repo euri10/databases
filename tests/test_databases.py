@@ -730,19 +730,20 @@ async def test_database_json_index_operations_operand_int(database_url):
             data_table.c.data[5]
     """
     async with Database(database_url) as database:
-        inserts = [
-            [{"a": "foo"}, {"b": "bar"}, {"c": "baz"}]
-        ]
-        query = jsonitems.insert()
-        r = await database.execute_many(
-            query, values=[{"metadata": insert} for insert in inserts]
-        )
-        query = select([jsonitems])
-        r = await database.fetch_all(query)
-        assert len(r) == 1
-        query = select([jsonitems.c.metadata[2]])
-        r = await database.fetch_one(query)
-        assert r["anon_1"] == {"c": "baz"}
+        async with database.transaction(force_rollback=True):
+            inserts = [
+                [{"a": "foo"}, {"b": "bar"}, {"c": "baz"}]
+            ]
+            query = jsonitems.insert()
+            r = await database.execute_many(
+                query, values=[{"metadata": insert} for insert in inserts]
+            )
+            query = select([jsonitems])
+            r = await database.fetch_all(query)
+            assert len(r) == 1
+            query = select([jsonitems.c.metadata[2]])
+            r = await database.fetch_one(query)
+            assert r["anon_1"] == {"c": "baz"}
 
 
 @pytest.mark.parametrize("database_url", POSTGRES_ONLY)
@@ -763,19 +764,20 @@ async def test_database_json_index_operations_operand_text(database_url):
             data_table.c.data[5]
     """
     async with Database(database_url) as database:
-        inserts = [
-            {"a": {"b": "foo"}}
-        ]
-        query = jsonitems.insert()
-        r = await database.execute_many(
-            query, values=[{"metadata": insert} for insert in inserts]
-        )
-        query = select([jsonitems])
-        r = await database.fetch_all(query)
-        assert len(r) == 1
-        query = select([jsonitems.c.metadata['a']])
-        r = await database.fetch_one(query)
-        assert r["anon_1"] == {"b": "foo"}
+        async with database.transaction(force_rollback=True):
+            inserts = [
+                {"a": {"b": "foo"}}
+            ]
+            query = jsonitems.insert()
+            r = await database.execute_many(
+                query, values=[{"metadata": insert} for insert in inserts]
+            )
+            query = select([jsonitems])
+            r = await database.fetch_all(query)
+            assert len(r) == 1
+            query = select([jsonitems.c.metadata['a']])
+            r = await database.fetch_one(query)
+            assert r["anon_1"] == {"b": "foo"}
 
 
 @pytest.mark.parametrize("database_url", POSTGRES_ONLY)
@@ -796,21 +798,22 @@ async def test_database_json_index_operations_operand_int_returning_text(databas
 
     """
     async with Database(database_url) as database:
-        inserts = [
-            {"somekey": 12345}
-        ]
-        query = jsonitems.insert()
-        r = await database.execute_many(
-            query, values=[{"metadata": insert} for insert in inserts]
-        )
-        query = select([jsonitems])
-        r = await database.fetch_all(query)
-        assert len(r) == 1
-        query = select([jsonitems.c.metadata["somekey"].cast(Integer)])
-        r = await database.fetch_one(query)
-        assert len(r) == 1
-        # should return text but ayncpg casts
-        assert r["anon_1"] == 12345
+        async with database.transaction(force_rollback=True):
+            inserts = [
+                {"somekey": 12345}
+            ]
+            query = jsonitems.insert()
+            r = await database.execute_many(
+                query, values=[{"metadata": insert} for insert in inserts]
+            )
+            query = select([jsonitems])
+            r = await database.fetch_all(query)
+            assert len(r) == 1
+            query = select([jsonitems.c.metadata["somekey"].cast(Integer)])
+            r = await database.fetch_one(query)
+            assert len(r) == 1
+            # should return text but ayncpg casts
+            assert r["anon_1"] == 12345
 
 
 @pytest.mark.parametrize("database_url", POSTGRES_ONLY)
@@ -831,20 +834,21 @@ async def test_database_json_index_operations_operand_text_returning_text(databa
 
     """
     async with Database(database_url) as database:
-        inserts = [
-            {"a": 1, "b": 2}
-        ]
-        query = jsonitems.insert()
-        r = await database.execute_many(
-            query, values=[{"metadata": insert} for insert in inserts]
-        )
-        query = select([jsonitems])
-        r = await database.fetch_all(query)
-        assert len(r) == 1
-        query = select([jsonitems.c.metadata["b"].astext])
-        r = await database.fetch_one(query)
-        assert len(r) == 1
-        assert r["anon_1"] == "2"
+        async with database.transaction(force_rollback=True):
+            inserts = [
+                {"a": 1, "b": 2}
+            ]
+            query = jsonitems.insert()
+            r = await database.execute_many(
+                query, values=[{"metadata": insert} for insert in inserts]
+            )
+            query = select([jsonitems])
+            r = await database.fetch_all(query)
+            assert len(r) == 1
+            query = select([jsonitems.c.metadata["b"].astext])
+            r = await database.fetch_one(query)
+            assert len(r) == 1
+            assert r["anon_1"] == "2"
 
 
 

@@ -716,7 +716,7 @@ async def test_database_url_interface(database_url):
 @async_adapter
 async def test_database_json_index_operations_operand_int(database_url):
     """
-    From https://www.postgresql.org/docs/11/functions-json.html
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSON-OP-TABLE
 
         ->	int
         Get JSON array element (indexed from zero, negative integers count from the end)
@@ -750,7 +750,7 @@ async def test_database_json_index_operations_operand_int(database_url):
 @async_adapter
 async def test_database_json_index_operations_operand_text(database_url):
     """
-    From https://www.postgresql.org/docs/11/functions-json.html
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSON-OP-TABLE
 
         ->	text
         Get JSON object field by key
@@ -784,7 +784,7 @@ async def test_database_json_index_operations_operand_text(database_url):
 @async_adapter
 async def test_database_json_index_operations_operand_int_returning_text(database_url):
     """
-    From https://www.postgresql.org/docs/11/functions-json.html
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSON-OP-TABLE
 
         ->>	int
         Get JSON array element as text
@@ -820,7 +820,7 @@ async def test_database_json_index_operations_operand_int_returning_text(databas
 @async_adapter
 async def test_database_json_index_operations_operand_text_returning_text(database_url):
     """
-    From https://www.postgresql.org/docs/11/functions-json.html
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSON-OP-TABLE
 
         ->>	text
         Get JSON object field as text
@@ -855,7 +855,7 @@ async def test_database_json_index_operations_operand_text_returning_text(databa
 @async_adapter
 async def test_database_json_pathindex_operations_operand_textarray(database_url):
     """
-    From https://www.postgresql.org/docs/11/functions-json.html
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSON-OP-TABLE
 
         #>	text[]
         Get JSON object at specified path
@@ -891,7 +891,7 @@ async def test_database_json_pathindex_operations_operand_textarray(database_url
 @async_adapter
 async def test_database_json_pathindex_operations_operand_textarray_returning_text(database_url):
     """
-    From https://www.postgresql.org/docs/11/functions-json.html
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSON-OP-TABLE
 
         #>>	text[]
         Get JSON object at specified path as text

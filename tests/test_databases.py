@@ -919,3 +919,203 @@ async def test_database_json_pathindex_operations_operand_textarray_returning_te
             r = await database.fetch_one(query)
             assert len(r) == 1
             assert r["anon_1"] == "3"
+
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_jsonb_contains(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSONB-OP-TABLE
+
+        @>
+        jsonb
+        Does the left JSON value contain the right JSON path/value entries at the top level?
+        '{"a":1, "b":2}'::jsonb @> '{"b":2}'::jsonb
+
+    From https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#sqlalchemy.dialects.postgresql.JSONB.Comparator.contains
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            pass
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_jsonb_contained_by(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSONB-OP-TABLE
+
+        <@
+        jsonb
+        Are the left JSON path/value entries contained at the top level within the right JSON value?
+        '{"b":2}'::jsonb <@ '{"a":1, "b":2}'::jsonb
+
+    From https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#sqlalchemy.dialects.postgresql.JSONB.Comparator.contained_by
+
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            pass
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_jsonb_has_key(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSONB-OP-TABLE
+
+        ?
+        text
+        Does the string exist as a top-level key within the JSON value?
+        '{"a":1, "b":2}'::jsonb ? 'b'
+
+    From https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#sqlalchemy.dialects.postgresql.JSONB.Comparator.has_key
+
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            pass
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_jsonb_has_any(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSONB-OP-TABLE
+
+        ?|
+        text[]
+        Do any of these array strings exist as top-level keys?
+        '{"a":1, "b":2, "c":3}'::jsonb ?| array['b', 'c']
+
+    From https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#sqlalchemy.dialects.postgresql.JSONB.Comparator.has_any
+
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            pass
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_jsonb_has_all(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSONB-OP-TABLE
+
+        ?&
+        text[]
+        Do all of these array strings exist as top-level keys?
+        '["a", "b"]'::jsonb ?& array['a', 'b']
+
+    From https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#sqlalchemy.dialects.postgresql.JSONB.Comparator.has_all
+
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            pass
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_jsonb_concatenate(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSONB-OP-TABLE
+
+        ||
+        jsonb
+        Concatenate two jsonb values into a new jsonb value
+        '["a", "b"]'::jsonb || '["c", "d"]'::jsonb
+
+    From ??
+
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            pass
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_jsonb_delete_key_operand_text(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSONB-OP-TABLE
+
+        -
+        text
+        Delete key/value pair or string element from left operand. Key/value pairs are matched based on their key value.
+        '{"a": "b"}'::jsonb - 'a'
+
+    From ??
+
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            pass
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_jsonb_delete_key_operand_text_array(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSONB-OP-TABLE
+
+        -
+        text[]
+        Delete multiple key/value pairs or string elements from left operand. Key/value pairs are matched based on their key value.
+        '{"a": "b", "c": "d"}'::jsonb - '{a,c}'::text[]
+
+    From ??
+
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            pass
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_jsonb_delete_key_operand_integer(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSONB-OP-TABLE
+
+        -
+        integer
+        Delete the array element with specified index (Negative integers count from the end). Throws an error if top level container is not an array.
+        '["a", "b"]'::jsonb - 1
+
+    From ??
+
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            pass
+
+
+@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@async_adapter
+async def test_database_jsonb_delete_path_operand_text_array(database_url):
+    """
+    From https://www.postgresql.org/docs/11/functions-json.html#FUNCTIONS-JSONB-OP-TABLE
+
+        #-
+        text[]
+        Delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+        '["a", {"b":1}]'::jsonb #- '{1,b}'
+
+    From ??
+
+
+    """
+    async with Database(database_url) as database:
+        async with database.transaction(force_rollback=True):
+            pass

@@ -363,7 +363,24 @@ async def test_database_jsonb_has_key(database_url):
     """
     async with Database(database_url) as database:
         async with database.transaction(force_rollback=True):
-            pass
+            inserts = [
+                {"a":1, "b":2}
+            ]
+            query = jsonitems.insert()
+            r = await database.execute_many(
+                query, values=[{"metadata": insert} for insert in inserts]
+            )
+            query = select([jsonitems])
+            r = await database.fetch_all(query)
+            assert len(r) == 1
+            query = select([jsonitems.c.metadata.has_key("b")])
+            r = await database.fetch_one(query)
+            assert len(r) == 1
+            assert r["anon_1"] == True
+            query = select([jsonitems.c.metadata.has_key("c")])
+            r = await database.fetch_one(query)
+            assert len(r) == 1
+            assert r["anon_1"] == False
 
 
 @pytest.mark.parametrize("database_url", POSTGRES_ONLY)

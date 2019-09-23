@@ -826,18 +826,20 @@ lake = sqlalchemy.Table(
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
-@pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+ticker_len_data = [(10,1), (10,5), (10,9), (100,5), (100,50), (100,99)]
+# @pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+@pytest.mark.parametrize("ticker_len, ticker_chosen_len", ticker_len_data)
 @async_adapter
-async def test_slow(database_url):
+async def test_slow(ticker_len, ticker_chosen_len):
     import datetime
+    database_url = [u for u in DATABASE_URLS if 'postgres' in u][0]
     start_date = datetime.date(year=2015, month=6, day=1)
     end_date = datetime.date(year=2015, month=6, day=29)
     delta = end_date - start_date
     date_list = []
     for i in range(delta.days + 1):
         date_list.append((start_date + datetime.timedelta(days=i)).strftime("%Y-%m-%d"))
-    ticker_list = [f"ticker{i}" for i in range(100)]
+    ticker_list = [f"ticker{i}" for i in range(ticker_len)]
     tdlist = list(itertools.product(ticker_list, date_list))
     random.seed(0)
     async with Database(database_url) as database:
@@ -855,7 +857,7 @@ async def test_slow(database_url):
             await database.execute_many(query, values)
 
             rand_tickers = (f"ticker{r}" for r in
-                            random.choices(list(range(len(ticker_list))), k=99))
+                            random.choices(list(range(len(ticker_list))), k=ticker_chosen_len))
             l = alias(lake)
             fields_asked = ["field3", "field2", "field4", "field1"]
             columns_asked = [column(fa) for fa in fields_asked]
@@ -883,3 +885,5 @@ async def test_slow(database_url):
 
             for idx, _ in enumerate(core_result):
                 assert core_result[idx]._row == rawcore_result[idx]._row
+
+            logger.info(f'{(rawcore1 - rawcore0)/(core1 - core0):.2f}')

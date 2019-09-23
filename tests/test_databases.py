@@ -10,7 +10,6 @@ import time
 
 import pytest
 import sqlalchemy
-from faker import Faker
 from sqlalchemy import alias, column, select, cast
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import array
@@ -428,7 +427,6 @@ async def test_transaction_decorator(database_url):
     Ensure that @database.transaction() is supported.
     """
     async with Database(database_url, force_rollback=True) as database:
-
         @database.transaction()
         async def insert_data(raise_exception):
             query = notes.insert().values(text="example", completed=True)
@@ -754,7 +752,6 @@ async def test_concurrent_access_on_single_connection(database_url):
         pytest.skip("Test requires `pg_sleep()`")
 
     async with Database(database_url, force_rollback=True) as database:
-
         async def db_lookup():
             await database.fetch_one("SELECT pg_sleep(1)")
 
@@ -826,7 +823,6 @@ lake = sqlalchemy.Table(
     sqlalchemy.Column("field4", sqlalchemy.String),
 )
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -841,7 +837,7 @@ async def test_slow(database_url):
     date_list = []
     for i in range(delta.days + 1):
         date_list.append((start_date + datetime.timedelta(days=i)).strftime("%Y-%m-%d"))
-    ticker_list = [f"ticker{i}" for i in range (10000)]
+    ticker_list = [f"ticker{i}" for i in range(100)]
     tdlist = list(itertools.product(ticker_list, date_list))
     random.seed(0)
     async with Database(database_url) as database:
@@ -855,11 +851,11 @@ async def test_slow(database_url):
                  "field3": random.random(),
                  "field4": None,
 
-                 } for ticker,ttime in tdlist]
+                 } for ticker, ttime in tdlist]
             await database.execute_many(query, values)
 
-
-            rand_tickers = (f"ticker{r}" for r in random.choices(list(range(len(ticker_list))), k=2000))
+            rand_tickers = (f"ticker{r}" for r in
+                            random.choices(list(range(len(ticker_list))), k=99))
             l = alias(lake)
             fields_asked = ["field3", "field2", "field4", "field1"]
             columns_asked = [column(fa) for fa in fields_asked]
@@ -876,9 +872,10 @@ async def test_slow(database_url):
             core0 = time.time()
             core_result = await database.fetch_all(core)
             core1 = time.time()
-            logger.info(f"core: {core1-core0}")
+            logger.info(f"core: {core1 - core0}")
 
-            raw_core = str(core.compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}))
+            raw_core = str(core.compile(dialect=postgresql.dialect(),
+                                        compile_kwargs={"literal_binds": True}))
             rawcore0 = time.time()
             rawcore_result = await database.fetch_all(raw_core)
             rawcore1 = time.time()

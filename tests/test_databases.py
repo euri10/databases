@@ -898,25 +898,35 @@ notes_len_data = [(10),(100),(1000),(10000), (100000)]
 async def test_another_slow(database_url,notes_len):
     async with Database(database_url) as database:
         async with database.transaction(force_rollback=True):
+            # insert x notes
             query = notes.insert()
             valuestrue = [{"text": str(uuid.uuid4), "completed": True} for i in range(1000)]
             await database.execute_many(query, valuestrue)
             valuesfalse = [{"text": str(uuid.uuid4), "completed": False} for i in range(100)]
             await database.execute_many(query, valuesfalse)
 
+            # 2 queries, one using core other using str compiled by sqlalchemy
             core = select(['*']).where(notes.c.completed == False)
+            raw_core = str(core.compile(dialect=postgresql.dialect(),
+                                        compile_kwargs={"literal_binds": True}))
+
+            # calculating core time
             core0 = time.time()
             core_result = await database.fetch_all(core)
             core1 = time.time()
             logger.info(f"core: {core1 - core0}")
-            raw_core = str(core.compile(dialect=postgresql.dialect(),
-                                        compile_kwargs={"literal_binds": True}))
+
+            # calculating raw core time
             rawcore0 = time.time()
             rawcore_result = await database.fetch_all(raw_core)
             rawcore1 = time.time()
             logger.info(f"rawcore: {rawcore1 - rawcore0}")
+
+            # making sure both queries fetch the same
             for idx, _ in enumerate(core_result):
                 assert core_result[idx]._row == rawcore_result[idx]._row
+
+            # log diff
             logger.info(f'{(rawcore1 - rawcore0) / (core1 - core0):.2f}')
             assert rawcore1 - rawcore0 < core1 - core0
 
@@ -926,29 +936,40 @@ async def test_another_slow(database_url,notes_len):
 @async_adapter
 async def test_another_slow_reverse(database_url,notes_len):
     """
+    just to be sure there's no cache effect
     """
     async with Database(database_url) as database:
         async with database.transaction(force_rollback=True):
+            # insert x notes
             query = notes.insert()
-            valuestrue = [{"text": str(uuid.uuid4), "completed": True} for i in range(1000)]
+            valuestrue = [{"text": str(uuid.uuid4), "completed": True} for i in
+                          range(1000)]
             await database.execute_many(query, valuestrue)
-            valuesfalse = [{"text": str(uuid.uuid4), "completed": False} for i in range(100)]
+            valuesfalse = [{"text": str(uuid.uuid4), "completed": False} for i in
+                           range(100)]
             await database.execute_many(query, valuesfalse)
 
+            # 2 queries, one using core other using str compiled by sqlalchemy
             core = select(['*']).where(notes.c.completed == False)
             raw_core = str(core.compile(dialect=postgresql.dialect(),
                                         compile_kwargs={"literal_binds": True}))
+
+            # calculating raw core time
             rawcore0 = time.time()
             rawcore_result = await database.fetch_all(raw_core)
             rawcore1 = time.time()
             logger.info(f"rawcore: {rawcore1 - rawcore0}")
 
+            # calculating core time
             core0 = time.time()
             core_result = await database.fetch_all(core)
             core1 = time.time()
             logger.info(f"core: {core1 - core0}")
+
+            # making sure both queries fetch the same
             for idx, _ in enumerate(core_result):
                 assert core_result[idx]._row == rawcore_result[idx]._row
-            logger.info(f'{(rawcore1 - rawcore0) / (core1 - core0):.2f}')
 
-            assert (rawcore1 - rawcore0) < (core1 - core0)
+            # log diff
+            logger.info(f'{(rawcore1 - rawcore0) / (core1 - core0):.2f}')
+            assert rawcore1 - rawcore0 < core1 - core0

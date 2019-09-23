@@ -902,6 +902,7 @@ async def test_another_slow(database_url,notes_len):
             valuestrue = [{"text": str(uuid.uuid4), "completed": True} for i in range(1000)]
             await database.execute_many(query, valuestrue)
             valuesfalse = [{"text": str(uuid.uuid4), "completed": False} for i in range(100)]
+            await database.execute_many(query, valuesfalse)
 
             core = select(['*']).where(notes.c.completed == False)
             core0 = time.time()
@@ -931,6 +932,7 @@ async def test_another_slow_reverse(database_url,notes_len):
             valuestrue = [{"text": str(uuid.uuid4), "completed": True} for i in range(1000)]
             await database.execute_many(query, valuestrue)
             valuesfalse = [{"text": str(uuid.uuid4), "completed": False} for i in range(100)]
+            await database.execute_many(query, valuesfalse)
 
             core = select(['*']).where(notes.c.completed == False)
             raw_core = str(core.compile(dialect=postgresql.dialect(),

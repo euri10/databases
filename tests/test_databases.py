@@ -827,71 +827,71 @@ lake = sqlalchemy.Table(
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-ticker_len_data = [(10,1), (10,5), (10,9), (100,5), (100,50), (100,99)]
-# @pytest.mark.parametrize("database_url", POSTGRES_ONLY)
-@pytest.mark.parametrize("ticker_len, ticker_chosen_len", ticker_len_data)
-@async_adapter
-async def test_slow(ticker_len, ticker_chosen_len):
-    import datetime
-    database_url = [u for u in DATABASE_URLS if 'postgres' in u][0]
-    start_date = datetime.date(year=2015, month=6, day=1)
-    end_date = datetime.date(year=2015, month=6, day=29)
-    delta = end_date - start_date
-    date_list = []
-    for i in range(delta.days + 1):
-        date_list.append((start_date + datetime.timedelta(days=i)).strftime("%Y-%m-%d"))
-    ticker_list = [f"ticker{i}" for i in range(ticker_len)]
-    tdlist = list(itertools.product(ticker_list, date_list))
-    random.seed(0)
-    async with Database(database_url) as database:
-        async with database.transaction(force_rollback=True):
-            query = lake.insert()
-            values = [
-                {"time": ttime,
-                 "ticker": ticker,
-                 "field1": random.randint(0, 9),
-                 "field2": f"f2{ticker}{ttime}",
-                 "field3": random.random(),
-                 "field4": None,
+# ticker_len_data = [(10,1), (10,5), (10,9), (100,5), (100,50), (100,99)]
+# # @pytest.mark.parametrize("database_url", POSTGRES_ONLY)
+# @pytest.mark.parametrize("ticker_len, ticker_chosen_len", ticker_len_data)
+# @async_adapter
+# async def test_slow(ticker_len, ticker_chosen_len):
+#     import datetime
+#     database_url = [u for u in DATABASE_URLS if 'postgres' in u][0]
+#     start_date = datetime.date(year=2015, month=6, day=1)
+#     end_date = datetime.date(year=2015, month=6, day=29)
+#     delta = end_date - start_date
+#     date_list = []
+#     for i in range(delta.days + 1):
+#         date_list.append((start_date + datetime.timedelta(days=i)).strftime("%Y-%m-%d"))
+#     ticker_list = [f"ticker{i}" for i in range(ticker_len)]
+#     tdlist = list(itertools.product(ticker_list, date_list))
+#     random.seed(0)
+#     async with Database(database_url) as database:
+#         async with database.transaction(force_rollback=True):
+#             query = lake.insert()
+#             values = [
+#                 {"time": ttime,
+#                  "ticker": ticker,
+#                  "field1": random.randint(0, 9),
+#                  "field2": f"f2{ticker}{ttime}",
+#                  "field3": random.random(),
+#                  "field4": None,
+#
+#                  } for ticker, ttime in tdlist]
+#             await database.execute_many(query, values)
+#
+#             rand_tickers = (f"ticker{r}" for r in
+#                             random.choices(list(range(len(ticker_list))), k=ticker_chosen_len))
+#             l = alias(lake)
+#             fields_asked = ["field3", "field2", "field4", "field1"]
+#             columns_asked = [column(fa) for fa in fields_asked]
+#             ticker_arr = array(rand_tickers)
+#             x = unnest_func(ticker_arr).alias("x")
+#             r = select([x.c.unnest, x.c.ordinality]).select_from(x).alias("r")
+#             # core = (
+#             #     select(columns_asked)
+#             #         .select_from(l.join(r, l.c.ticker == r.c.unnest))
+#             #         .where(l.c.time == "2015-06-28")
+#             #         .order_by(r.c.ordinality)
+#             # )
+#             core = select(['*']).where(l.c.time == "2015-06-28")
+#             raw_core = str(core.compile(dialect=postgresql.dialect(),
+#                                         compile_kwargs={"literal_binds": True}))
+#
+#             rawcore0 = time.time()
+#             rawcore_result = await database.fetch_all(raw_core)
+#             rawcore1 = time.time()
+#             logger.info(f"rawcore: {rawcore1 - rawcore0}")
+#
+#             core0 = time.time()
+#             core_result = await database.fetch_all(core)
+#             core1 = time.time()
+#             logger.info(f"core: {core1 - core0}")
+#
+#             for idx, _ in enumerate(core_result):
+#                 assert core_result[idx]._row == rawcore_result[idx]._row
+#
+#             logger.info(f'{(rawcore1 - rawcore0)/(core1 - core0):.2f}')
+#             assert rawcore1 - rawcore0 < core1 - core0
 
-                 } for ticker, ttime in tdlist]
-            await database.execute_many(query, values)
-
-            rand_tickers = (f"ticker{r}" for r in
-                            random.choices(list(range(len(ticker_list))), k=ticker_chosen_len))
-            l = alias(lake)
-            fields_asked = ["field3", "field2", "field4", "field1"]
-            columns_asked = [column(fa) for fa in fields_asked]
-            ticker_arr = array(rand_tickers)
-            x = unnest_func(ticker_arr).alias("x")
-            r = select([x.c.unnest, x.c.ordinality]).select_from(x).alias("r")
-            # core = (
-            #     select(columns_asked)
-            #         .select_from(l.join(r, l.c.ticker == r.c.unnest))
-            #         .where(l.c.time == "2015-06-28")
-            #         .order_by(r.c.ordinality)
-            # )
-            core = select(['*']).where(l.c.time == "2015-06-28")
-            raw_core = str(core.compile(dialect=postgresql.dialect(),
-                                        compile_kwargs={"literal_binds": True}))
-
-            rawcore0 = time.time()
-            rawcore_result = await database.fetch_all(raw_core)
-            rawcore1 = time.time()
-            logger.info(f"rawcore: {rawcore1 - rawcore0}")
-
-            core0 = time.time()
-            core_result = await database.fetch_all(core)
-            core1 = time.time()
-            logger.info(f"core: {core1 - core0}")
-
-            for idx, _ in enumerate(core_result):
-                assert core_result[idx]._row == rawcore_result[idx]._row
-
-            logger.info(f'{(rawcore1 - rawcore0)/(core1 - core0):.2f}')
-            assert rawcore1 - rawcore0 < core1 - core0
-
-notes_len_data = [(10),(100),(1000),(10000)]
+notes_len_data = [(10),(100),(1000),(10000), (100000)]
 @pytest.mark.parametrize("notes_len", notes_len_data)
 @pytest.mark.parametrize("database_url", POSTGRES_ONLY)
 @async_adapter
@@ -919,6 +919,7 @@ async def test_another_slow(database_url,notes_len):
                 assert core_result[idx]._row == rawcore_result[idx]._row
             logger.info(f'{(rawcore1 - rawcore0) / (core1 - core0):.2f}')
             assert rawcore1 - rawcore0 < core1 - core0
+
 
 @pytest.mark.parametrize("notes_len", notes_len_data)
 @pytest.mark.parametrize("database_url", POSTGRES_ONLY)

@@ -6,6 +6,8 @@ import os
 
 import pytest
 import sqlalchemy
+from sqlalchemy import create_engine
+from sqlalchemy.sql.expression import bindparam
 
 from databases import Database, DatabaseURL
 
@@ -115,55 +117,93 @@ async def test_queries(database_url):
     `fetch_one()` interfaces are all supported (using SQLAlchemy core).
     """
     async with Database(database_url) as database:
-        async with database.transaction(force_rollback=True):
-            # execute()
-            query = notes.insert()
-            values = {"text": "example1", "completed": True}
-            await database.execute(query, values)
+        # async with database.transaction():
+        # async with database.transaction(force_rollback=True):
+        # execute()
+        query = notes.insert()
+        values = {"text": "example1", "completed": True}
+        await database.execute(query, values)
 
-            # execute_many()
-            query = notes.insert()
-            values = [
-                {"text": "example2", "completed": False},
-                {"text": "example3", "completed": True},
-            ]
-            await database.execute_many(query, values)
+        # execute_many()
+        query = notes.insert()
+        values = [
+            {"text": "example2", "completed": False},
+            {"text": "example3", "completed": True},
+        ]
+        await database.execute_many(query, values)
 
-            # fetch_all()
-            query = notes.select()
-            results = await database.fetch_all(query=query)
-            assert len(results) == 3
-            assert results[0]["text"] == "example1"
-            assert results[0]["completed"] == True
-            assert results[1]["text"] == "example2"
-            assert results[1]["completed"] == False
-            assert results[2]["text"] == "example3"
-            assert results[2]["completed"] == True
 
-            # fetch_one()
-            query = notes.select()
-            result = await database.fetch_one(query=query)
-            assert result["text"] == "example1"
-            assert result["completed"] == True
+        # fetch_all()
+        query = notes.select()
+        results = await database.fetch_all(query=query)
+        assert len(results) == 3
+        assert results[0]["text"] == "example1"
+        assert results[0]["completed"] == True
+        assert results[1]["text"] == "example2"
+        assert results[1]["completed"] == False
+        assert results[2]["text"] == "example3"
+        assert results[2]["completed"] == True
 
-            # fetch_val()
-            query = sqlalchemy.sql.select([notes.c.text])
-            result = await database.fetch_val(query=query)
-            assert result == "example1"
+        # fetch_one()
+        query = notes.select()
+        result = await database.fetch_one(query=query)
+        assert result["text"] == "example1"
+        assert result["completed"] == True
 
-            # iterate()
-            query = notes.select()
-            iterate_results = []
-            async for result in database.iterate(query=query):
-                iterate_results.append(result)
-            assert len(iterate_results) == 3
-            assert iterate_results[0]["text"] == "example1"
-            assert iterate_results[0]["completed"] == True
-            assert iterate_results[1]["text"] == "example2"
-            assert iterate_results[1]["completed"] == False
-            assert iterate_results[2]["text"] == "example3"
-            assert iterate_results[2]["completed"] == True
+        # fetch_val()
+        query = sqlalchemy.sql.select([notes.c.text])
+        result = await database.fetch_val(query=query)
+        assert result == "example1"
 
+        # iterate()
+        query = notes.select()
+        iterate_results = []
+        async for result in database.iterate(query=query):
+            iterate_results.append(result)
+        assert len(iterate_results) == 3
+        assert iterate_results[0]["text"] == "example1"
+        assert iterate_results[0]["completed"] == True
+        assert iterate_results[1]["text"] == "example2"
+        assert iterate_results[1]["completed"] == False
+        assert iterate_results[2]["text"] == "example3"
+        assert iterate_results[2]["completed"] == True
+
+
+        # execute_many with bindparans
+        stmt = notes.insert().values(text=bindparam("b_test"), completed=bindparam("b_completed"))
+        values = [
+            {"text": "example22", "completed": False},
+            {"text": "example32", "completed": True},
+        ]
+        await database.execute_many(stmt, values)
+        query = notes.select()
+        results = await database.fetch_all(query=query)
+        assert len(results) == 5
+        assert results[3]["text"] == "example22"
+        assert results[3]["completed"] == False
+        assert results[4]["text"] == "example32"
+        assert results[4]["completed"] == True
+        assert [r['text'] for r in results] == ['example1', 'example2', 'example3', 'example22', 'example32']
+
+        # execute_many with bindparans
+        stmt = notes.update().where(notes.c.id==bindparam("b_id")).values({"text":bindparam("b_text"), "completed":bindparam("b_completed")})
+        values = [
+            {"b_text": "example22_update", "b_completed": True, "b_id": 3},
+            {"b_text": "example32_update", "b_completed": False, "b_id": 4},
+        ]
+        # await database.execute(stmt, values)
+        engine = create_engine(database_url,echo="debug")
+        connection = engine.connect()
+        r = connection.execute(stmt, values)
+        query = notes.select()
+        results = await database.fetch_all(query=query)
+        assert len(results) == 5
+        assert results[3]["text"] == "example22_update"
+        assert results[3]["completed"] == True
+        assert results[4]["text"] == "example32_update"
+        assert results[4]["completed"] == False
+
+        pass
 
 @pytest.mark.parametrize("database_url", DATABASE_URLS)
 @async_adapter
